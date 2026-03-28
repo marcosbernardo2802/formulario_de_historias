@@ -1076,19 +1076,20 @@
                         textoParaSalvar = "[História armazenada no formato PDF anexo para manter o painel limpo]";
                     }
 
+                    // PACOTE DE DADOS NUMERADO (Força a ordem visual no Firebase)
                     const formData = {
-                        autor: autorNome,
-                        email: autorEmail,
-                        titulo: roteiroTitulo,
-                        conteudo: textoParaSalvar,
-                        pdf_anexo: arquivoPdfBase64,
-                        estatisticas: {
+                        "01_autor": autorNome,
+                        "02_titulo": roteiroTitulo,
+                        "03_email": autorEmail,
+                        "04_estatisticas": {
                             caracteres: chars,
                             tempo_estimado: tempoStr
                         },
-                        termos_aceites: document.getElementById('terms-check') ? document.getElementById('terms-check').checked : false,
-                        uid: currentUser.uid,
-                        timestamp: serverTimestamp()
+                        "05_conteudo": textoParaSalvar,
+                        "06_pdf_anexo": arquivoPdfBase64,
+                        "07_termos_aceites": document.getElementById('terms-check') ? document.getElementById('terms-check').checked : false,
+                        "08_timestamp": serverTimestamp(),
+                        "09_uid": currentUser.uid
                     };
 
                     try {
