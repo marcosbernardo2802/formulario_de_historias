@@ -962,7 +962,7 @@
                     let tempoStr = "00:00";
                     let arquivoPdfBase64 = null;
 
-                    // Função auxiliar geradora de PDF a partir do texto
+                    // Função auxiliar geradora de PDF a partir do texto (Agora muito mais robusta)
                     const gerarPdfDeTexto = (textoBase) => {
                         const { jsPDF } = window.jspdf;
                         const doc = new jsPDF();
@@ -970,27 +970,39 @@
                         const pageHeight = doc.internal.pageSize.height;
                         let cursorY = margin;
 
+                        const tituloSafe = roteiroTitulo || "Sem título";
+                        const autorSafe = autorNome || "Desconhecido";
+                        const txtSafe = textoBase || "Roteiro vazio.";
+
                         doc.setFont("helvetica", "bold");
                         doc.setFontSize(16);
-                        doc.text(roteiroTitulo, margin, cursorY);
+                        doc.text(tituloSafe, margin, cursorY);
                         cursorY += 8;
                         
                         doc.setFont("helvetica", "italic");
                         doc.setFontSize(12);
-                        doc.text(`Por: ${autorNome}`, margin, cursorY);
+                        doc.text(`Por: ${autorSafe}`, margin, cursorY);
                         cursorY += 10;
 
                         doc.setFont("helvetica", "normal");
                         doc.setFontSize(11);
 
-                        const splitText = doc.splitTextToSize(textoBase, 180);
-                        for (let i = 0; i < splitText.length; i++) {
-                            if (cursorY > pageHeight - margin) {
-                                doc.addPage();
-                                cursorY = margin;
+                        // Respeita as quebras de linha e formatação do texto (Parágrafos)
+                        const linhas = txtSafe.split('\n');
+                        for (let p = 0; p < linhas.length; p++) {
+                            if (linhas[p].trim() === '') {
+                                cursorY += 6; // Espaço extra para linhas em branco
+                                continue;
                             }
-                            doc.text(splitText[i], margin, cursorY);
-                            cursorY += 6;
+                            const splitText = doc.splitTextToSize(linhas[p], 180);
+                            for (let i = 0; i < splitText.length; i++) {
+                                if (cursorY > pageHeight - margin) {
+                                    doc.addPage();
+                                    cursorY = margin;
+                                }
+                                doc.text(splitText[i], margin, cursorY);
+                                cursorY += 6;
+                            }
                         }
                         return doc.output('datauristring');
                     };
@@ -1019,7 +1031,7 @@
                                 tempoStr = `${String(mins).padStart(2, '0')}:${String(Math.floor((chars/1000 - mins)*60)).padStart(2, '0')}`;
                             } else if (fileExt === 'docx') {
                                 // Usa Mammoth para extrair de Word DOCX e converte para PDF
-                                if (!window.mammoth) throw new Error("Módulo de leitura DOCX não carregado.");
+                                if (!window.mammoth) throw new Error("Módulo de leitura DOCX não carregado. Aguarde um instante e tente novamente.");
                                 const arrayBuffer = await readFileAsArrayBuffer(file);
                                 const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
                                 roteiroTextoStr = result.value;
@@ -1038,16 +1050,29 @@
                         }
                     } catch (err) {
                         console.error("Erro no processamento do arquivo:", err);
-                        alert("Falha ao processar arquivo: " + err.message);
+                        alert("Falha de processamento na nave: " + err.message);
                         resetBotao();
                         return;
+                    }
+
+                    // TRAVA DE SEGURANÇA CONTRA ERROS DE ENVIO (Limite de 1MB do Firestore)
+                    if (arquivoPdfBase64 && arquivoPdfBase64.length > 900000) {
+                        alert("Atenção, Comandante: O arquivo gerado ou enviado é muito pesado para a transmissão do banco de dados (Limite de 1MB). Por favor, reduza o tamanho do arquivo ou cole o texto puro na área de digitação.");
+                        resetBotao();
+                        return;
+                    }
+
+                    // Limpa o texto gigante para não poluir o painel do Firebase
+                    let textoParaSalvar = roteiroTextoStr;
+                    if (arquivoPdfBase64) {
+                        textoParaSalvar = "[História armazenada no formato PDF anexo para manter o painel limpo]";
                     }
 
                     const formData = {
                         autor: autorNome,
                         email: autorEmail,
                         titulo: roteiroTitulo,
-                        conteudo: roteiroTextoStr,
+                        conteudo: textoParaSalvar,
                         pdf_anexo: arquivoPdfBase64,
                         estatisticas: {
                             caracteres: chars,
