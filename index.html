@@ -115,6 +115,13 @@
                         margin-left: 0 !important;
                         margin-right: 0 !important;
                     }
+
+                    /* 5. Destrava a Rolagem Interna do Iframe (Força Bruta) */
+                    html, body {
+                        overflow-y: auto !important;
+                        overflow-x: hidden !important;
+                        height: auto !important;
+                    }
                 `;
                 document.head.appendChild(camaleaoStyle);
 
@@ -125,14 +132,15 @@
                     areaPrincipal.style.marginTop = '0';
                 }
 
-                // LIBERA A ROLAGEM: Destravando a barra de rolagem para o Iframe funcionar corretamente
-                document.documentElement.style.overflowY = 'auto';
-                document.body.style.overflowY = 'auto';
+                // LIBERA A ROLAGEM: Destravando a barra via JS também
+                document.documentElement.style.setProperty('overflow-y', 'auto', 'important');
+                document.body.style.setProperty('overflow-y', 'auto', 'important');
 
                 // 3. Ajuste de Altura Anti-Loop (Comunicação com o Portal)
                 let ultimaAltura = 0;
                 function informarAltura() {
-                    const alturaAtual = document.body.scrollHeight;
+                    // Usa o maior valor possível para garantir que nada fica cortado
+                    const alturaAtual = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
                     if (alturaAtual !== ultimaAltura && alturaAtual > 0) {
                         ultimaAltura = alturaAtual;
                         window.parent.postMessage({ action: 'resizeIframe', height: alturaAtual }, '*');
